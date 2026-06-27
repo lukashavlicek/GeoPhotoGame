@@ -1,0 +1,22 @@
+.venv/
+__pycache__/
+*.pyc
+.env
+CLAUDE.local.md
+.claude/
+
+# OS noise
+Thumbs.db
+.DS_Store
+
+# Personal media — never commit photos or generated output
+photos/*
+!photos/.gitkeep
+output/*
+!output/.gitkeep
+*.jpg
+*.jpeg
+*.png
+*.heic
+*.mov
+*.mp4
