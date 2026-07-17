@@ -1,0 +1,101 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "id": "cafe-pastel",
+      "properties": {
+        "title": "Find a new cool looking coffee place in Povoa - go there for a walk and try their pasteis de natas - Padaria Garrett",
+        "type": "go-to-place"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-8.764391205421285, 41.380126989727]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "brazil-sign",
+      "properties": {
+        "title": "How far is Brazil? Find out from the sign",
+        "type": "spot-a-detail"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-8.785486471759592, 41.41637773829686]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "fish-azulejos",
+      "properties": {
+        "title": "Find a fish on the wall in Paineis de Azulejos",
+        "type": "spot-a-detail"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-8.767189401061495, 41.37830696339992]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "birdwatching-park",
+      "properties": {
+        "title": "Go birdwatching to the cidade park, spot three different species of bird and learn who they are",
+        "type": "find-and-count"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-8.755206853308533, 41.398755515562556]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "beach-sunset",
+      "properties": {
+        "title": "Go to the beach during sunset, find a hidden treasure in the sand",
+        "type": "spot-a-detail"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-8.782533952099302, 41.407181870993284]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "sea-life-porto",
+      "properties": {
+        "title": "Keep the annual tradition alive, go to Sea Life in Porto - take a family picture in the exit",
+        "type": "go-to-place"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-8.686558116444814, 41.16892099502329]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "mexican-fort",
+      "properties": {
+        "title": "Go eat Mexican in the Povoa fort",
+        "type": "go-to-place"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-8.764418943948545, 41.378357111099994]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "sushi-lunch",
+      "properties": {
+        "title": "Don't forget SUSHI all you can eat for lunch",
+        "type": "go-to-place"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-8.775954091197583, 41.39343032134373]
+      }
+    }
+  ]
+}
