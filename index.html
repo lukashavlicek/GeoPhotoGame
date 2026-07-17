@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Summer 2026</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      display: flex;
+      flex-direction: column;
+      height: 100dvh;
+      background: #f8f8f8;
+    }
+
+    #header {
+      background: #1a6b3c;
+      color: white;
+      padding: 10px 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-shrink: 0;
+    }
+    #header h1 { font-size: 1.1rem; font-weight: 600; }
+    #count { font-size: 0.9rem; opacity: 0.85; }
+
+    #map { flex: 0 0 55vh; }
+
+    #checklist-wrapper {
+      flex: 1 1 0;
+      overflow-y: auto;
+      padding: 8px 12px 0;
+    }
+
+    .task-row {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      padding: 10px 0;
+      border-bottom: 1px solid #e5e5e5;
+      cursor: pointer;
+    }
+    .task-row:last-child { border-bottom: none; }
+
+    .task-row input[type="checkbox"] {
+      margin-top: 3px;
+      width: 18px;
+      height: 18px;
+      flex-shrink: 0;
+      accent-color: #1a6b3c;
+      cursor: pointer;
+    }
+
+    .task-body { flex: 1; }
+
+    .task-title {
+      font-size: 0.92rem;
+      color: #111;
+      line-height: 1.35;
+    }
+    .task-row.done .task-title {
+      text-decoration: line-through;
+      color: #999;
+    }
+
+    .type-badge {
+      display: inline-block;
+      margin-top: 4px;
+      font-size: 0.7rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      padding: 1px 6px;
+      border-radius: 3px;
+    }
+    .badge-go-to-place    { background: #dbeafe; color: #1e40af; }
+    .badge-find-and-count { background: #fef9c3; color: #854d0e; }
+    .badge-spot-a-detail  { background: #fce7f3; color: #9d174d; }
+
+    #actions {
+      display: flex;
+      gap: 8px;
+      padding: 10px 12px;
+      border-top: 1px solid #e5e5e5;
+      background: white;
+      flex-shrink: 0;
+    }
+
+    button {
+      padding: 9px 16px;
+      border: none;
+      border-radius: 6px;
+      font-size: 0.88rem;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    #btn-export {
+      flex: 1;
+      background: #1a6b3c;
+      color: white;
+    }
+    #btn-reset {
+      background: #f1f1f1;
+      color: #555;
+    }
+
+    /* Leaflet popup "Mark done" button */
+    .popup-done-btn {
+      display: block;
+      width: 100%;
+      margin-top: 8px;
+      padding: 7px 0;
+      background: #1a6b3c;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .popup-done-btn:disabled {
+      background: #aaa;
+      cursor: default;
+    }
+  </style>
+</head>
+<body>
+
+<div id="header">
+  <h1>Summer 2026 🇵🇹</h1>
+  <span id="count">0 / 0 done</span>
+</div>
+
+<div id="map"></div>
+
+<div id="checklist-wrapper">
+  <div id="checklist"></div>
+</div>
+
+<div id="actions">
+  <button id="btn-export">Export log</button>
+  <button id="btn-reset">Reset</button>
+</div>
+
+<script>
+const STORAGE_KEY = 'geophoto-completions';
+
+// --- State ---
+let tasks = [];           // GeoJSON features
+let completions = {};     // task_id -> completion record
+let markers = {};         // task_id -> Leaflet marker
+let userLatLng = null;    // current geolocation
+
+// --- Helpers ---
+function loadCompletions() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) {
+      const arr = JSON.parse(raw);
+      arr.forEach(c => { completions[c.task_id] = c; });
+    }
+  } catch (e) { /* ignore corrupt storage */ }
+}
+
+function saveCompletions() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(Object.values(completions)));
+}
+
+function isDone(taskId) {
+  return Boolean(completions[taskId]);
+}
+
+function updateCount() {
+  const done = Object.keys(completions).length;
+  document.getElementById('count').textContent = `${done} / ${tasks.length} done`;
+}
+
+function taskIcon(done) {
+  const color = done ? '#22c55e' : '#f97316';
+  return L.divIcon({
+    className: '',
+    html: `<div style="width:18px;height:18px;border-radius:50%;background:${color};border:2.5px solid white;box-shadow:0 1px 4px rgba(0,0,0,0.35)"></div>`,
+    iconSize: [18, 18],
+    iconAnchor: [9, 9],
+    popupAnchor: [0, -12]
+  });
+}
+
+function badgeClass(type) {
+  return {
+    'go-to-place':    'badge-go-to-place',
+    'find-and-count': 'badge-find-and-count',
+    'spot-a-detail':  'badge-spot-a-detail'
+  }[type] || 'badge-go-to-place';
+}
+
+function badgeLabel(type) {
+  return { 'go-to-place': 'Go to place', 'find-and-count': 'Find & count', 'spot-a-detail': 'Spot a detail' }[type] || type;
+}
+
+// --- Mark done ---
+function markDone(taskId) {
+  if (isDone(taskId)) return;
+
+  const task = tasks.find(t => t.id === taskId);
+  if (!task) return;
+
+  completions[taskId] = {
+    task_id: taskId,
+    title: task.properties.title,
+    timestamp: new Date().toISOString(),
+    lat: userLatLng ? userLatLng.lat : null,
+    lng: userLatLng ? userLatLng.lng : null
+  };
+  saveCompletions();
+  updateCount();
+
+  // Update marker
+  markers[taskId].setIcon(taskIcon(true));
+  markers[taskId].closePopup();
+
+  // Update checklist row
+  const row = document.querySelector(`.task-row[data-id="${taskId}"]`);
+  if (row) {
+    row.classList.add('done');
+    row.querySelector('input[type="checkbox"]').checked = true;
+  }
+}
+
+// --- Map ---
+const map = L.map('map').setView([41.385, -8.765], 14);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+}).addTo(map);
+
+const userMarker = L.circleMarker([41.385, -8.765], {
+  radius: 8,
+  color: '#1d4ed8',
+  fillColor: '#3b82f6',
+  fillOpacity: 0.9,
+  weight: 2.5
+});
+
+// --- Geolocation ---
+if (navigator.geolocation) {
+  navigator.geolocation.watchPosition(pos => {
+    const latlng = L.latLng(pos.coords.latitude, pos.coords.longitude);
+    userLatLng = latlng;
+    if (!map.hasLayer(userMarker)) userMarker.addTo(map);
+    userMarker.setLatLng(latlng);
+  }, () => { /* permission denied or unavailable — silent */ }, {
+    enableHighAccuracy: true,
+    maximumAge: 10000
+  });
+}
+
+// --- Load tasks ---
+fetch('./tasks.geojson')
+  .then(r => r.json())
+  .then(data => {
+    tasks = data.features;
+    buildMap();
+    buildChecklist();
+    updateCount();
+  })
+  .catch(err => {
+    document.getElementById('checklist').textContent = 'Could not load tasks.geojson. ' + err.message;
+  });
+
+function buildMap() {
+  tasks.forEach(task => {
+    const id = task.id;
+    const [lng, lat] = task.geometry.coordinates;
+    const done = isDone(id);
+
+    const marker = L.marker([lat, lng], { icon: taskIcon(done) }).addTo(map);
+
+    const popup = L.popup({ maxWidth: 240 }).setContent(() => {
+      const div = document.createElement('div');
+      div.style.fontSize = '0.88rem';
+      div.style.lineHeight = '1.4';
+      div.textContent = task.properties.title;
+      const btn = document.createElement('button');
+      btn.className = 'popup-done-btn';
+      btn.textContent = isDone(id) ? 'Already done ✓' : 'Mark done';
+      btn.disabled = isDone(id);
+      btn.addEventListener('click', () => { markDone(id); });
+      div.appendChild(btn);
+      return div;
+    });
+
+    marker.bindPopup(popup);
+    markers[id] = marker;
+  });
+}
+
+function buildChecklist() {
+  const list = document.getElementById('checklist');
+  tasks.forEach(task => {
+    const id = task.id;
+    const done = isDone(id);
+    const props = task.properties;
+
+    const row = document.createElement('div');
+    row.className = 'task-row' + (done ? ' done' : '');
+    row.dataset.id = id;
+
+    const cb = document.createElement('input');
+    cb.type = 'checkbox';
+    cb.checked = done;
+    cb.addEventListener('change', () => { if (cb.checked) markDone(id); else cb.checked = isDone(id); });
+
+    const body = document.createElement('div');
+    body.className = 'task-body';
+
+    const title = document.createElement('div');
+    title.className = 'task-title';
+    title.textContent = props.title;
+
+    const badge = document.createElement('span');
+    badge.className = `type-badge ${badgeClass(props.type)}`;
+    badge.textContent = badgeLabel(props.type);
+
+    body.appendChild(title);
+    body.appendChild(badge);
+    row.appendChild(cb);
+    row.appendChild(body);
+
+    // clicking the row (not just checkbox) also opens the map marker
+    row.addEventListener('click', e => {
+      if (e.target === cb) return;
+      const [lng, lat] = task.geometry.coordinates;
+      map.setView([lat, lng], Math.max(map.getZoom(), 16));
+      markers[id].openPopup();
+    });
+
+    list.appendChild(row);
+  });
+}
+
+// --- Export ---
+document.getElementById('btn-export').addEventListener('click', () => {
+  const data = Object.values(completions);
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'completion-log.json';
+  a.click();
+});
+
+// --- Reset ---
+document.getElementById('btn-reset').addEventListener('click', () => {
+  if (!confirm('Reset all completed tasks? This cannot be undone.')) return;
+  completions = {};
+  localStorage.removeItem(STORAGE_KEY);
+  updateCount();
+  tasks.forEach(task => {
+    markers[task.id].setIcon(taskIcon(false));
+    markers[task.id].closePopup();
+    const row = document.querySelector(`.task-row[data-id="${task.id}"]`);
+    if (row) {
+      row.classList.remove('done');
+      row.querySelector('input[type="checkbox"]').checked = false;
+    }
+  });
+});
+</script>
+</body>
+</html>
