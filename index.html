@@ -82,8 +82,7 @@
 
     .task-card {
       display: flex;
-      align-items: center;
-      gap: 10px;
+      flex-direction: column;
       background: var(--card);
       border-radius: 14px;
       padding: 11px 12px;
@@ -95,7 +94,12 @@
     .task-card.done {
       background: var(--done-bg);
       box-shadow: none;
-      opacity: 0.72;
+      opacity: 0.85;
+    }
+    .task-card-main {
+      display: flex;
+      align-items: center;
+      gap: 10px;
     }
 
     @keyframes complete-flash {
@@ -170,6 +174,43 @@
       color: white;
     }
 
+    /* Photo section */
+    .task-photo-section {
+      display: none;
+      margin-top: 10px;
+      padding-top: 10px;
+      border-top: 1px solid var(--sand-dark);
+    }
+    .task-card.done .task-photo-section { display: block; }
+
+    .task-thumb {
+      width: 100%;
+      max-height: 140px;
+      object-fit: cover;
+      border-radius: 8px;
+      display: block;
+      margin-bottom: 6px;
+    }
+    .task-photo-name {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      margin-bottom: 6px;
+      word-break: break-all;
+    }
+    .btn-attach-photo {
+      display: block;
+      width: 100%;
+      padding: 7px 0;
+      background: transparent;
+      color: var(--text-muted);
+      border: 1.5px dashed var(--sand-dark);
+      border-radius: 8px;
+      font-size: 0.8rem;
+      font-weight: 500;
+      cursor: pointer;
+      text-align: center;
+    }
+
     /* ── Actions ── */
     #actions {
       display: flex;
@@ -239,6 +280,8 @@
   <div id="checklist"></div>
 </div>
 
+<input type="file" id="photo-input" accept="image/*" style="display:none">
+
 <div id="actions">
   <button id="btn-export">Export log</button>
   <button id="btn-reset">Reset</button>
@@ -269,6 +312,8 @@ let tasks = [];
 let completions = {};
 let markers = {};
 let userLatLng = null;
+let photoUrls = {};        // taskId → blob URL (session only, lost on reload)
+let pendingPhotoTaskId = null;
 
 function loadCompletions() {
   try {
@@ -324,6 +369,60 @@ function taskIcon(taskId, done) {
   });
 }
 
+// ── Photo attachment ──
+function triggerPhotoInput(taskId) {
+  pendingPhotoTaskId = taskId;
+  const input = document.getElementById('photo-input');
+  input.value = '';
+  input.click();
+}
+
+function renderPhotoSection(card, taskId) {
+  const section = card.querySelector('.task-photo-section');
+  section.innerHTML = '';
+
+  const completion = completions[taskId];
+  const blobUrl = photoUrls[taskId];
+
+  if (blobUrl) {
+    const img = document.createElement('img');
+    img.className = 'task-thumb';
+    img.src = blobUrl;
+    section.appendChild(img);
+  }
+
+  if (completion && completion.photo_filename) {
+    const name = document.createElement('div');
+    name.className = 'task-photo-name';
+    name.textContent = '📷 ' + completion.photo_filename;
+    section.appendChild(name);
+  }
+
+  const btn = document.createElement('button');
+  btn.className = 'btn-attach-photo';
+  btn.textContent = (completion && completion.photo_filename) ? 'Change photo' : '📷 Attach photo';
+  btn.addEventListener('click', e => { e.stopPropagation(); triggerPhotoInput(taskId); });
+  section.appendChild(btn);
+}
+
+document.getElementById('photo-input').addEventListener('change', function () {
+  const file = this.files[0];
+  if (!file || !pendingPhotoTaskId) return;
+  const taskId = pendingPhotoTaskId;
+  pendingPhotoTaskId = null;
+
+  if (photoUrls[taskId]) URL.revokeObjectURL(photoUrls[taskId]);
+  photoUrls[taskId] = URL.createObjectURL(file);
+
+  if (completions[taskId]) {
+    completions[taskId].photo_filename = file.name;
+    saveCompletions();
+  }
+
+  const card = document.querySelector(`.task-card[data-id="${taskId}"]`);
+  if (card) renderPhotoSection(card, taskId);
+});
+
 // ── Mark done ──
 function markDone(taskId) {
   if (isDone(taskId)) return;
@@ -350,6 +449,7 @@ function markDone(taskId) {
     card.classList.add('done', 'flash');
     card.querySelector('.task-check').textContent = '✓';
     card.addEventListener('animationend', () => card.classList.remove('flash'), { once: true });
+    renderPhotoSection(card, taskId);
   }
 }
 
@@ -420,7 +520,15 @@ function buildChecklist() {
     check.className = 'task-check';
     if (done) check.textContent = '✓';
 
-    card.append(emojiEl, body, check);
+    const main = document.createElement('div');
+    main.className = 'task-card-main';
+    main.append(emojiEl, body, check);
+
+    const photoSection = document.createElement('div');
+    photoSection.className = 'task-photo-section';
+
+    card.append(main, photoSection);
+    if (done) renderPhotoSection(card, id);
 
     // tap card → fly to pin on map
     card.addEventListener('click', () => {
@@ -467,6 +575,8 @@ document.getElementById('btn-export').addEventListener('click', () => {
 document.getElementById('btn-reset').addEventListener('click', () => {
   if (!confirm('Reset all completed tasks? This cannot be undone.')) return;
   completions = {};
+  Object.values(photoUrls).forEach(url => URL.revokeObjectURL(url));
+  photoUrls = {};
   localStorage.removeItem(STORAGE_KEY);
   updateHeader();
   tasks.forEach(task => {
@@ -476,6 +586,7 @@ document.getElementById('btn-reset').addEventListener('click', () => {
     if (card) {
       card.classList.remove('done', 'flash');
       card.querySelector('.task-check').textContent = '';
+      card.querySelector('.task-photo-section').innerHTML = '';
     }
   });
 });
