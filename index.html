@@ -183,19 +183,24 @@
     }
     .task-card.done .task-photo-section { display: block; }
 
+    .task-thumb-strip {
+      display: flex;
+      gap: 6px;
+      overflow-x: auto;
+      margin-bottom: 6px;
+      padding-bottom: 2px;
+    }
     .task-thumb {
-      width: 100%;
-      max-height: 140px;
+      width: 80px;
+      height: 80px;
       object-fit: cover;
       border-radius: 8px;
-      display: block;
-      margin-bottom: 6px;
+      flex-shrink: 0;
     }
     .task-photo-name {
       font-size: 0.75rem;
       color: var(--text-muted);
       margin-bottom: 6px;
-      word-break: break-all;
     }
     .btn-attach-photo {
       display: block;
@@ -280,7 +285,7 @@
   <div id="checklist"></div>
 </div>
 
-<input type="file" id="photo-input" accept="image/*" style="display:none">
+<input type="file" id="photo-input" accept="image/*" multiple style="display:none">
 
 <div id="actions">
   <button id="btn-export">Export log</button>
@@ -312,7 +317,7 @@ let tasks = [];
 let completions = {};
 let markers = {};
 let userLatLng = null;
-let photoUrls = {};        // taskId → blob URL (session only, lost on reload)
+let photoUrls = {};        // taskId → blob URL[] (session only, lost on reload)
 let pendingPhotoTaskId = null;
 
 function loadCompletions() {
@@ -382,42 +387,48 @@ function renderPhotoSection(card, taskId) {
   section.innerHTML = '';
 
   const completion = completions[taskId];
-  const blobUrl = photoUrls[taskId];
+  const urls = photoUrls[taskId] || [];
+  const filenames = (completion && completion.photo_filenames) || [];
 
-  if (blobUrl) {
-    const img = document.createElement('img');
-    img.className = 'task-thumb';
-    img.src = blobUrl;
-    section.appendChild(img);
+  if (urls.length > 0) {
+    const strip = document.createElement('div');
+    strip.className = 'task-thumb-strip';
+    urls.forEach(url => {
+      const img = document.createElement('img');
+      img.className = 'task-thumb';
+      img.src = url;
+      strip.appendChild(img);
+    });
+    section.appendChild(strip);
   }
 
-  if (completion && completion.photo_filename) {
+  if (filenames.length > 0) {
     const name = document.createElement('div');
     name.className = 'task-photo-name';
-    name.textContent = '📷 ' + completion.photo_filename;
+    name.textContent = `📷 ${filenames.length} photo${filenames.length > 1 ? 's' : ''} attached`;
     section.appendChild(name);
   }
 
   const btn = document.createElement('button');
   btn.className = 'btn-attach-photo';
-  btn.textContent = (completion && completion.photo_filename) ? 'Change photo' : '📷 Attach photo';
+  btn.textContent = filenames.length > 0 ? '+ Add more photos' : '📷 Attach photo';
   btn.addEventListener('click', e => { e.stopPropagation(); triggerPhotoInput(taskId); });
   section.appendChild(btn);
 }
 
 document.getElementById('photo-input').addEventListener('change', function () {
-  const file = this.files[0];
-  if (!file || !pendingPhotoTaskId) return;
+  if (!this.files.length || !pendingPhotoTaskId) return;
   const taskId = pendingPhotoTaskId;
   pendingPhotoTaskId = null;
 
-  if (photoUrls[taskId]) URL.revokeObjectURL(photoUrls[taskId]);
-  photoUrls[taskId] = URL.createObjectURL(file);
+  if (!photoUrls[taskId]) photoUrls[taskId] = [];
+  if (!completions[taskId].photo_filenames) completions[taskId].photo_filenames = [];
 
-  if (completions[taskId]) {
-    completions[taskId].photo_filename = file.name;
-    saveCompletions();
-  }
+  Array.from(this.files).forEach(file => {
+    photoUrls[taskId].push(URL.createObjectURL(file));
+    completions[taskId].photo_filenames.push(file.name);
+  });
+  saveCompletions();
 
   const card = document.querySelector(`.task-card[data-id="${taskId}"]`);
   if (card) renderPhotoSection(card, taskId);
@@ -575,7 +586,7 @@ document.getElementById('btn-export').addEventListener('click', () => {
 document.getElementById('btn-reset').addEventListener('click', () => {
   if (!confirm('Reset all completed tasks? This cannot be undone.')) return;
   completions = {};
-  Object.values(photoUrls).forEach(url => URL.revokeObjectURL(url));
+  Object.values(photoUrls).forEach(urls => urls.forEach(url => URL.revokeObjectURL(url)));
   photoUrls = {};
   localStorage.removeItem(STORAGE_KEY);
   updateHeader();
