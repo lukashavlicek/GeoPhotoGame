@@ -5,7 +5,7 @@
       "type": "Feature",
       "id": "cafe-pastel",
       "properties": {
-        "title": "Find a new cool looking coffee place in Povoa - go there for a walk and try their pasteis de natas - Padaria Garrett",
+        "title": "Visit a new café in Povoa & get natas for everyone",
         "type": "go-to-place"
       },
       "geometry": {
@@ -17,7 +17,7 @@
       "type": "Feature",
       "id": "brazil-sign",
       "properties": {
-        "title": "How far is Brazil? Find out from the sign",
+        "title": "How far is Brazil?",
         "type": "spot-a-detail"
       },
       "geometry": {
@@ -41,7 +41,7 @@
       "type": "Feature",
       "id": "birdwatching-park",
       "properties": {
-        "title": "Go birdwatching to the cidade park, spot three different species of bird and learn who they are",
+        "title": "Go birdwatching in the parque da cidade & spot three different species of birds",
         "type": "find-and-count"
       },
       "geometry": {
@@ -53,7 +53,7 @@
       "type": "Feature",
       "id": "beach-sunset",
       "properties": {
-        "title": "Go to the beach during sunset, find a hidden treasure in the sand",
+        "title": "Go to the beach during sunset & find a hidden treasure",
         "type": "spot-a-detail"
       },
       "geometry": {
@@ -65,7 +65,7 @@
       "type": "Feature",
       "id": "sea-life-porto",
       "properties": {
-        "title": "Keep the annual tradition alive, go to Sea Life in Porto - take a family picture in the exit",
+        "title": "Keep the annual tradition alive, go to Sea Life in Porto & take a family picture in the exit",
         "type": "go-to-place"
       },
       "geometry": {
@@ -77,7 +77,7 @@
       "type": "Feature",
       "id": "mexican-fort",
       "properties": {
-        "title": "Go eat Mexican in the Povoa fort",
+        "title": "Go explore the Póvoa fort & eat Mexican",
         "type": "go-to-place"
       },
       "geometry": {
@@ -89,7 +89,7 @@
       "type": "Feature",
       "id": "sushi-lunch",
       "properties": {
-        "title": "Don't forget SUSHI all you can eat for lunch",
+        "title": "Don't forget all you can eat sushi for lunch",
         "type": "go-to-place"
       },
       "geometry": {
