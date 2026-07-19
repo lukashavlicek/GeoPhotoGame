@@ -1,0 +1,76 @@
+---------------------------
+16.7.26
+---------------------------
+Finished -> Phase 2 - you can now upload a photo (.HEIC file) to \photos folder, the script can pull its geolocation data and save it to \output\photo_metadata.csv file and reverse geolocate these coordinates on the map. You have tested in couple of pictures around Valmez. This layed should be ready for Povoa.
+
+Next step -> you need to work on Phase 1 - a static task map, web app map of Povoa with pins for all tasks. "You are here" + nearby tasks. Check off a task when finished, mark it done and log the timestamp
+
+You need to also prepare list of tasks (6 tasks ?), it will be translated into a GeoJSON - The one thing that ties both halves together is a single shared file: a list of your Póvoa tasks with their coordinates (a small GeoJSON). The field app reads it to draw pins; the generator reads it to match photos.
+
+
+---------------------------
+17.7.26
+---------------------------
+Done this session:
+- Created tasks.geojson with 8 Póvoa tasks (café, Brazil sign, fish azulejos, birdwatching,
+  beach sunset, Sea Life Porto, Mexican at fort, sushi). Each task has id slug, title,
+  type (go-to-place / find-and-count / spot-a-detail) and coordinates.
+- Built Phase 1 field app (index.html at repo root). Single HTML file, no framework.
+  Features: Leaflet map of Póvoa with 8 task pins, "you are here" GPS dot, scrollable
+  checklist panel, mark tasks done via map popup or checkbox, localStorage persistence
+  (survives closing the browser), Export button (downloads completion-log.json for Phase 2),
+  Reset button. Tested locally via python -m http.server 8000 - functionally working.
+- Committed and pushed everything to GitHub (master branch).
+
+Next steps (do these first next session):
+1. Make the GitHub repo PUBLIC so GitHub Pages works (free plan requirement).
+   Go to: GitHub repo → Settings → General → Change repository visibility → Public.
+2. Enable GitHub Pages: repo Settings → Pages → Source: master branch, root (/).
+3. Test the live URL https://lukashavlicek.github.io/GeoPhotoGame/ on your own phone
+   and your wife's iPhone — confirm the map loads, pins appear, and mark-done works.
+4. Review the field app more carefully and note any UI improvements or missing features
+   (e.g. better mobile styling, task ordering, anything that feels off on a real phone).
+   Report back and we will implement the improvements.
+
+Still to do later (not urgent until after the trip):
+- Phase 2 Step 3: group/match photos to tasks by location (spatial join)
+- Phase 2 Step 4: generate the printable memory book PDF
+
+
+---------------------------
+19.7.26
+---------------------------
+Done this session:
+- Updated task titles in tasks.geojson to match revised DraftOfTasks.txt (shorter, cleaner).
+- Full UI redesign of the field app (index.html):
+    - Sandy/coastal colour theme (warm sand background, deep azulejo blue header, terracotta
+      progress bar) to match the Portuguese summer feel.
+    - Progress bar in the header showing X/8 tasks completed.
+    - Emoji map pins — each task has its own emoji (☕🌊🐟🐦🌅🐠🌮🍣) instead of plain dots.
+    - Task cards redesigned with rounded corners, emoji icons, type badges, round tick circle.
+    - Completion animation — card flashes green when a task is marked done.
+    - Switched map tiles from OpenStreetMap default to CartoDB Voyager (warmer, travel-map feel).
+- Added photo attachment feature (Option B):
+    - After completing a task, a "📷 Attach photo" button appears on the card.
+    - Tap it to pick one or more photos from the camera roll (native iPhone photos, GPS intact).
+    - Thumbnails shown as a horizontal scrollable strip on the card.
+    - Filenames saved to localStorage and included in the exported completion-log.json
+      under photo_filenames: [...] — this removes the need for a spatial-join algorithm in
+      Phase 2 Step 3 (photos are now explicitly linked to tasks).
+- All changes committed and pushed to GitHub, live at:
+  https://lukashavlicek.github.io/GeoPhotoGame/
+
+Next steps (do these first next session):
+1. Review and revise the app texts:
+   - App title ("Summer 2026 🇵🇹" in the header) — change if desired.
+   - Task titles in tasks.geojson / DraftOfTasks.txt — do a final pass and edit the txt
+     file, then ask Claude to sync the changes to tasks.geojson.
+   - Type badge labels in the app ("Go to place", "Find & count", "Spot a detail") —
+     review if these make sense or should be renamed/hidden.
+2. Any other small UI tweaks noticed during testing on the phone.
+3. Once happy with the app, do a final test run on both phones before the trip.
+
+Still to do later (not urgent until after the trip):
+- Phase 2 Step 3: now simplified — use photo_filenames from completion-log.json to
+  explicitly link photos to tasks instead of spatial join.
+- Phase 2 Step 4: generate the printable memory book PDF.
